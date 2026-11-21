@@ -1,1 +1,41 @@
-placeholder for tomorrow build
+Build notes — gta6-trophy-rarity-forecast-01
+Built in this session on 2026-11-21 (Beijing time), from scratch.
+
+Design choices
+- Log-odds scale throughout, because the contest scores pinball
+  loss on that scale.
+- Drift per trophy from a two-window contrast (mean of earliest
+  two fifths vs mean of latest two fifths of the logit series),
+  chosen over a least-squares fit for robustness to single reads.
+- Saturating projection: effective reach h*42/(h+42) hours, and the
+  median's total logit move is capped at 1.45.
+- Spread: per-trophy step pace shrunk 70/30 toward the 0.5
+  logit-per-root-day anchor, times sqrt(horizon in days).
+
+Files
+- main.py: input/output folder handling, one .out per .in.
+- model.py: all forecasting maths.
+- README.md, LICENSE (MIT, from the kit starter), .makefun/owner.json.
+
+Revision history
+- v1: window-contrast drift, saturating projection, adaptive spread.
+- v2 (after the first local runs): drift and pace are now estimated
+  from the most recent 48 hours of reads only, and the quantile fan
+  widens slightly (up to +22%) with the size of the drift move, so a
+  moved median carries more uncertainty than a stationary one. On
+  the flat, three-hour practice histories v2 changes no output byte,
+  which the re-run below confirms.
+
+Testing (v2, 2026-11-21)
+- Practice cases p00/p01 from the kit run twice: outputs are byte
+  identical between the two runs (sha256 b5280e7c... for both cases),
+  and the format validates row by row (55 trophies, five
+  non-decreasing quantiles in [0, 100], output 2,672 bytes).
+- Leave-last-read-out backtest in the style of the prep harness
+  (30-minute held-out horizon): this model scores a mean pinball
+  loss of 0.0113 per level against 0.0143 for plain persistence —
+  on the prep harness's summed scale, 0.0283 against 0.0358 for the
+  official baseline — so the model is not worse than the baseline.
+- A synthetic steadily-rising series moves the median up with
+  ordered quantiles, and a synthetic flat series keeps its median
+  exactly on the last rate.
